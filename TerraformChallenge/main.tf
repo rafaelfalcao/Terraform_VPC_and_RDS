@@ -24,48 +24,45 @@ module "vpc" {
 
   enable_nat_gateway = true
   
-
-  }
 }
 
-
-# resource "aws_instance" "ec2-public" {
-#     ami = "ami-069bc9cfa21be900c"
-#     instance_type= "t2.micro"
-#     subnet_id     = module.vpc.public_subnets
-#     key_name = "credentials"
-#     associate_public_ip_address = true
-#     vpc_security_group_ids = [ aws_security_group.ec2-sg.id ]
+resource "aws_instance" "ec2-public" {
+    ami = "ami-069bc9cfa21be900c"
+    instance_type= "t2.micro"
+    subnet_id     = module.vpc.public_subnets
+    key_name = "credentials"
+    associate_public_ip_address = true
+    vpc_security_group_ids = [ aws_security_group.ec2-sg.id ]
    
-# }
+}
 
 resource "aws_security_group" "ec2-sg" {
     name = "security_group"
     description = "allow outside access to EC2"
     vpc_id = module.vpc.vpc_id
 
-    //traffic to enter
+    #traffic to enter
     ingress {
-        protocol = -1 //all protocols
+        protocol = -1 #all protocols
         from_port = 0
         to_port = 0
-        cidr_blocks =[0.0.0.0/0]
+        cidr_blocks =["0.0.0.0/0"]
     }
-
+     
+    #traffic to exit
     egress {
-        protocol = -1 //all protocols
+        protocol = -1 #all protocols
         from_port = 0
         to_port = 0
-        cidr_blocks =[0.0.0.0/0]
+        cidr_blocks =["0.0.0.0/0"]
     }
 }
 
-#get mysql client
-sudo apt-get update
-sudo apt-get install -y mysql-client
+#elastic IP
 
-#terraform init
-#terraform fmt
-#terraform validate
-#terraform plan
-#terraform apply 
+#RDS
+
+
+#MYSQL CLIENT
+
+
