@@ -11,7 +11,7 @@ module "vpc" {
 
   #SUBNETS - range of ip addresses in the vpc - subset of CIDR
 
-  private_subnets = ["192.168.0.1/24"] //, "10.0.2.0/24", "10.0.3.0/24"]
+  private_subnets = ["192.168.1.0/24" , "192.168.2.0/24", "192.168.3.0/24"]
 
   #to route to an internet gateway
   #needs public ipv4 or elastic ip 
@@ -29,7 +29,7 @@ module "vpc" {
 resource "aws_instance" "ec2-public" {
     ami = "ami-069bc9cfa21be900c"
     instance_type= "t2.micro"
-    subnet_id     = module.vpc.public_subnets
+    subnet_id     = module.vpc.public_subnets[0]
     key_name = "credentials"
     associate_public_ip_address = true
     vpc_security_group_ids = [ aws_security_group.ec2-sg.id ]
