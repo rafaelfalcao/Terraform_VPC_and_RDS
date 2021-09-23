@@ -26,16 +26,25 @@ module "vpc" {
   
 }
 
-resource "aws_instance" "ec2-public" {
+############################################  EC2 INSTANCE ##################################################
+resource "aws_instance" "myEC2" {
     ami = "ami-069bc9cfa21be900c"
     instance_type= "t2.micro"
     subnet_id     = module.vpc.public_subnets[0]
     key_name = "credentials"
     associate_public_ip_address = true
     vpc_security_group_ids = [ aws_security_group.ec2-sg.id ]
-   
+
+    //passing user data to the instance 
+    //that can be used to perform common automated 
+    //configuration tasks and even run scripts after the instance starts. 
+    user_data = <<-EOF
+                #!/bin/bash
+                yum install mysql
+              EOF
 }
 
+############################################  EC2 SECURITY GROUP ##################################################
 resource "aws_security_group" "ec2-sg" {
     name = "security_group"
     description = "allow outside access to EC2"
@@ -61,8 +70,19 @@ resource "aws_security_group" "ec2-sg" {
 #elastic IP
 
 #RDS
+resource "aws_db_instance" "myDB" {
+    allocated_storage = 50
+    identifier = "rdsinstance"
+    storage_type = "gp2"
+    engine = "mysql"
+    engine_version = "5.7"
+    instance_class = "db.db.t2.micro" #free tier
+    name = "rds"
+    username = "dbadmin"
+    password = "dbadmin"
+    parameter_group_name = "default.mysql5.7"
+}
 
 
-#MYSQL CLIENT
 
 
