@@ -5,7 +5,7 @@ module "vpc" {
   #Classless Inter-Domain Routing 
   #IPv4 addresses for the vpc
   cidr = "192.168.0.0/16"
-
+  
     #availability zones
   azs             = ["eu-west-2a" , "eu-west-2b"] //, "eu-west-2c"]
 
@@ -28,10 +28,11 @@ module "vpc" {
 
 ############################################  EC2 INSTANCE ##################################################
 resource "aws_instance" "myEC2" {
-    ami = "ami-069bc9cfa21be900c"
+    ami = "ami-069bc9cfa21be900c" # UBUNTU - ssh user is "ubuntu"
+    #LINUX2 AMI's user is ec2-user
     instance_type= "t2.micro"
     subnet_id     = module.vpc.public_subnets[0]
-    key_name = "credentials"
+    key_name = "personal_key"
     associate_public_ip_address = true
     vpc_security_group_ids = [ aws_security_group.ec2-sg.id ]
 
@@ -40,9 +41,20 @@ resource "aws_instance" "myEC2" {
     //configuration tasks and even run scripts after the instance starts. 
     user_data = <<-EOF
                 #!/bin/bash
-                yum install mysql
+                sudo apt-get update
+                sudo apt-get install -y mysql-client
               EOF
+              #-y argument overrides the y/n question of apt-get
 }
+
+#################################### AWS SSH KEY ######################################################
+
+resource "aws_key_pair" "generated_key" {
+  key_name   = "personal_key"
+  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCwU8n52OUIiSk0P6XPkh/We3C7ClVBVOadrBCISm9c6NA3iGBdCwGuuyviKlGa0IvjebnE9OZMZ5AVG6wUbnmDyxQAIU2FXF6D2Pxb2Efp0/6FEw/B2TrIUiro2xO3DZTPMduQeFVCqTfWuoTNbzy4llOC5B4s0IGIBYDjMtxxmIS8eF5C0V6VdGx4l9UrlC2ZV4RVSZTMRuzBVrPpwubXaLgKYhWefvU7y0IVO3zFJq1inOaw3pmVklUlZ6ugCxFL+UJ+loIiIX/kgm03hbcPqyAt+JBjgCiofBqu75xDezz4YFiax1JKRTdE655D7i8ZAkHK9ep8l7A/NnuVL2oxSBVOXphmmcN06g8gnbcep8kOAaeMB9qR0RF8SSK5y43mSCJPFxHme97CiPz7BKMa8atEI+XcYJvucFK0xQ199qs0j+rspypL+NNsWS/vMtznHmFpVtjRShzqjsIpfbf+R9QXo5G0nfaCF3QeSnqi/zvav527rLWg5mAaIN/Qr7U= r@r-XPS-15-9570"
+ #public key must be consumed from ENV var - bash profile file to load variables
+}
+
 
 ############################################  EC2 SECURITY GROUP ##################################################
 resource "aws_security_group" "ec2-sg" {
@@ -67,22 +79,75 @@ resource "aws_security_group" "ec2-sg" {
     }
 }
 
-#elastic IP
+############################################### ELASTIC IP  ###############################################################
+#public fixed IP - not required
 
-#RDS
-resource "aws_db_instance" "myDB" {
-    allocated_storage = 50
+/* resource "aws_eip" "eip-ec2" {
+  instance = "${aws_instance.myEC2.id}"
+  vpc = true
+  tags = {
+    Name = "ec2 elastic ip"module.vpc.public_subnets[0] , module.vpc.public_subnets[1]]
+  }
+} */
+
+
+################################################  RDS ########################################################3
+ resource "aws_db_instance" "myDB" {
+    allocated_storage = 10
     identifier = "rdsinstance"
-    storage_type = "gp2"
     engine = "mysql"
     engine_version = "5.7"
-    instance_class = "db.db.t2.micro" #free tier
+    instance_class = "db.t2.micro" #free tier
     name = "rds"
     username = "dbadmin"
-    password = "dbadmin"
+    password = "dbadmin123"
     parameter_group_name = "default.mysql5.7"
+    db_subnet_group_name = aws_db_subnet_group.rds_subnet_group.name
+    vpc_security_group_ids = [aws_security_group.rds-sg.id]
+  
+}
+
+resource "aws_db_subnet_group" "rds_subnet_group" {
+  name       = "main"
+  subnet_ids = module.vpc.private_subnets
+
+  tags = {
+    Name = "My DB subnet group"
+  }
+}
+
+############################################  RDS SECURITY GROUP ##################################################
+resource "aws_security_group" "rds-sg" {
+    name = "rds_security_group"
+    description = "allow outside access to RDS"
+    vpc_id = module.vpc.vpc_id
+
+    #traffic to enter
+    ingress {
+        protocol = -1 #all protocols
+        from_port = 0
+        to_port = 0
+        cidr_blocks =["0.0.0.0/0"]
+    }
+     
+    #traffic to exit
+    egress {
+        protocol = -1 #all protocols
+        from_port = 0
+        to_port = 0
+        cidr_blocks =["0.0.0.0/0"]
+    }
 }
 
 
+############################################# OUTPUTS ##################################################
+# to get EC2 public ip and  and RDS endpoint
 
+output "rds_endpoint" {
+  value = aws_db_instance.myDB.endpoint #only accessible from VPC
+}
 
+output "ec2_public_ip" {
+  value = aws_instance.myEC2.public_ip 
+
+}
