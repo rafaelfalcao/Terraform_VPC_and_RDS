@@ -32,3 +32,4 @@ override.tf.json
 
 #other files
 notes.txt
+.variables
