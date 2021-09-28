@@ -1,0 +1,5 @@
+unset TF_VAR_db_username
+unset TF_VAR_db_password
+unset TF_VAR_db_name
+
+echo "Variables have been deleted"

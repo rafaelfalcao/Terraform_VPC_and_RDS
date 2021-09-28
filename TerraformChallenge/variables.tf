@@ -6,6 +6,7 @@ provider "aws" {
 
 variable "dbname" {
   description = "RDS db_name"
+  default = "rds"
 } 
 
 variable "db_username" {

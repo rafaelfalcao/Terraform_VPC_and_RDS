@@ -64,14 +64,6 @@ resource "aws_security_group" "ec2-sg" {
 
   #traffic to enter 
   #protocol = -1 -> all protocols
-  #RDS
-  ingress {
-    protocol    = "tcp"
-    from_port   = 3306
-    to_port     = 3306
-    description = "allow connections from RDS"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 
   ingress {
     protocol    = "tcp"
@@ -80,7 +72,7 @@ resource "aws_security_group" "ec2-sg" {
     description = "allow ssh connections to my ec2"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  #HTTP
+/*   #HTTP
   ingress {
     from_port   = 80
     to_port     = 80
@@ -95,7 +87,7 @@ resource "aws_security_group" "ec2-sg" {
     protocol    = "tcp"
     description = "HTTPS"
     cidr_blocks = ["0.0.0.0/0"]
-  }
+  } */
 
   #traffic to exit
   egress {
@@ -132,7 +124,11 @@ resource "aws_db_instance" "myDB" {
   parameter_group_name   = "default.mysql5.7"
   db_subnet_group_name   = aws_db_subnet_group.rds_subnet_group.name
   vpc_security_group_ids = [aws_security_group.rds-sg.id]
+  
+  #only use this if non prod
+  skip_final_snapshot = true
 
+  final_snapshot_identifier = "rdsinstance"
 }
 
 resource "aws_db_subnet_group" "rds_subnet_group" {
@@ -152,10 +148,10 @@ resource "aws_security_group" "rds-sg" {
 
   #traffic to enter
   ingress {
-    protocol    = -1 #all protocols
-    from_port   = 0
-    to_port     = 0
-    cidr_blocks = ["0.0.0.0/0"]
+    protocol    = "tcp" #all protocols
+    from_port   = 3306
+    to_port     = 3306
+    security_groups = [ aws_security_group.ec2-sg.id ]
   }
 
   #traffic to exit - allow all 
