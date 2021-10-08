@@ -21,14 +21,15 @@ module "vpc" {
   #enables access to your remote network from your VPC by creating an AWS Site-to-Site VPN (Site-to-Site VPN) connection, 
   #and configuring routing to pass traffic through the connection. 
   enable_vpn_gateway = true
-
+  
+  #enables internet access from the  inside 
   enable_nat_gateway = true
 
 }
 
 ############################################  EC2 INSTANCE ##################################################
 resource "aws_instance" "myEC2" {
-  ami = "ami-069bc9cfa21be900c" # UBUNTU - ssh user is "ubuntu"
+  ami = "ami-0194c3e07668a7e36" # UBUNTU - ssh user is "ubuntu"
   #LINUX2 AMI's user is ec2-user
   instance_type               = "t2.micro"
   subnet_id                   = module.vpc.public_subnets[0]
@@ -46,7 +47,7 @@ resource "aws_instance" "myEC2" {
               EOF
   #-y argument overrides the y/n question of apt-get
 }
-
+ 
 #################################### AWS SSH KEY ######################################################
 
 resource "aws_key_pair" "generated_key" {
@@ -72,6 +73,7 @@ resource "aws_security_group" "ec2-sg" {
     description = "allow ssh connections to my ec2"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  
 /*   #HTTP
   ingress {
     from_port   = 80
@@ -110,68 +112,14 @@ resource "aws_security_group" "ec2-sg" {
 } */
 
 
-################################################  RDS ########################################################3
-resource "aws_db_instance" "myDB" {
-  allocated_storage      = 10
-  identifier             = "rdsinstance"
-  engine                 = "mysql"
-  engine_version         = "5.7"
-  instance_class         = "db.t2.micro" #free tier
-  #sets secrets from variables
-  name                   = var.dbname
-  username               = var.db_username
-  password               = var.db_password
-  parameter_group_name   = "default.mysql5.7"
-  db_subnet_group_name   = aws_db_subnet_group.rds_subnet_group.name
-  vpc_security_group_ids = [aws_security_group.rds-sg.id]
-  
-  #only use this if non prod
-  skip_final_snapshot = true
-
-  final_snapshot_identifier = "rdsinstance"
-}
-
-resource "aws_db_subnet_group" "rds_subnet_group" {
-  name       = "main"
-  subnet_ids = module.vpc.private_subnets
-
-  tags = {
-    Name = "My DB subnet group"
-  }
-}
-
-############################################  RDS SECURITY GROUP ##################################################
-resource "aws_security_group" "rds-sg" {
-  name        = "rds_security_group"
-  description = "allow outside access to RDS"
-  vpc_id      = module.vpc.vpc_id
-
-  #traffic to enter
-  ingress {
-    protocol    = "tcp" #all protocols
-    from_port   = 3306
-    to_port     = 3306
-    security_groups = [ aws_security_group.ec2-sg.id ]
-  }
-
-  #traffic to exit - allow all 
-  egress {
-    protocol    = -1 #all protocols
-    from_port   = 0
-    to_port     = 0
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-
 ############################################# OUTPUTS ##################################################
 # to get EC2 public ip and  and RDS endpoint
 
 output "rds_endpoint" {
   value = aws_db_instance.myDB.endpoint #only accessible from VPC
-}
+} 
 
 output "ec2_public_ip" {
   value = aws_instance.myEC2.public_ip
 
-}
+} 
